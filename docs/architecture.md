@@ -4,6 +4,8 @@
 
 ## Boundaries
 
+Each boundary owns one concern, keeping transport code separate from business logic and persistence.
+
 ```mermaid
 flowchart LR
     K[Kafka consumer<br/>Message boundary] --> S[Transaction service<br/>Business rules]
@@ -24,6 +26,8 @@ flowchart TB
 ```
 
 ## Processing sequence
+
+Transactions move asynchronously from the producer to Kafka before validation and persistence begin.
 
 ```mermaid
 sequenceDiagram
@@ -54,6 +58,8 @@ sequenceDiagram
 
 ## Validation gate
 
+Every check must pass before the incentive is requested or either user balance is changed.
+
 ```mermaid
 flowchart TD
     A[Transaction] --> B{Sender exists?}
@@ -71,6 +77,8 @@ flowchart TD
 ```
 
 ## Domain model
+
+The core models represent incoming transfers, stored users, balance responses, and repository access.
 
 ```mermaid
 classDiagram
@@ -102,6 +110,8 @@ classDiagram
 ```
 
 ## Complete application example
+
+The example uses an amount of `256` so the bundled Incentive API returns a visible reward of `8`.
 
 ```mermaid
 sequenceDiagram

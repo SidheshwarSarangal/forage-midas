@@ -4,6 +4,8 @@
 
 ## Contract flow
 
+Three contracts connect the producer, Midas Core, the Incentive API, and balance clients.
+
 ```mermaid
 sequenceDiagram
     participant P as Producer
@@ -21,6 +23,8 @@ sequenceDiagram
 ```
 
 ## Kafka message
+
+Kafka carries the identifiers of both users and the amount being transferred.
 
 ```json
 {
@@ -42,6 +46,8 @@ classDiagram
 > The model uses `recipientId`, not `receiverId`.
 
 ## Incentive endpoint
+
+Midas Core sends the valid transaction to the external service and reads the returned incentive amount.
 
 ```mermaid
 flowchart LR
@@ -72,6 +78,8 @@ flowchart LR
 
 ## Balance endpoint
 
+The controller loads the requested user and returns the balance through the `Balance` response model.
+
 ```mermaid
 sequenceDiagram
     participant C as Client
@@ -92,6 +100,8 @@ sequenceDiagram
 > `Balance` contains only `amount`.
 
 ## Ports
+
+The local workflow uses separate ports for messaging, the core service, and the external API.
 
 ```mermaid
 flowchart LR

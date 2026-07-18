@@ -2,6 +2,8 @@
 
 [← README](../README.md) · [Architecture](architecture.md) · [Contracts](api-contracts.md) · [Testing](testing-and-runbook.md)
 
+The project connected event-driven processing, relational persistence, REST integration, and testing in one practical workflow.
+
 ```mermaid
 flowchart TB
     P((Project learning))
@@ -23,6 +25,8 @@ flowchart TB
 ```
 
 ## Workflow lessons
+
+The order of operations protects data integrity and makes the transaction lifecycle easier to reason about.
 
 ```mermaid
 flowchart LR
@@ -54,6 +58,8 @@ flowchart TB
 | Debug asynchronous state | Events run outside the producer call stack |
 
 ## Production next steps
+
+Moving from an exercise to a financial production service would require stronger consistency, resilience, security, and observability.
 
 ```mermaid
 flowchart TB

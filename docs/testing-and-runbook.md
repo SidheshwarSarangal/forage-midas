@@ -4,6 +4,8 @@
 
 ## Task journey
 
+The five suites build progressively from application startup to an end-to-end balance query.
+
 ```mermaid
 flowchart LR
     T1[Task 1<br/>Boot] --> T2[Task 2<br/>Kafka]
@@ -22,6 +24,8 @@ flowchart TB
 ```
 
 ## Embedded Kafka flow
+
+The tests load fixture data, publish typed transactions, and inspect the resulting application state.
 
 ```mermaid
 sequenceDiagram
@@ -46,6 +50,8 @@ sequenceDiagram
 
 ## Run
 
+Start the Incentive API first, then execute one Maven verification task in a second terminal.
+
 ```bash
 # Terminal 1
 java -jar services/transaction-incentive-api.jar
@@ -69,6 +75,8 @@ flowchart LR
 > The current scaffold has an empty dependency list and configuration file. The complete suite needs Spring Web, Kafka, Data JPA, H2, test dependencies, and runtime settings.
 
 ## Repository map
+
+The project keeps runtime code, test support, documentation, and the external service artifact separate.
 
 ```text
 forage-midas/

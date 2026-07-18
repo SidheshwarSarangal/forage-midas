@@ -18,6 +18,8 @@ flowchart LR
 
 ## What the system covers
 
+Midas Core brings messaging, validation, storage, external integration, querying, and verification into one workflow.
+
 ```mermaid
 flowchart TB
     M((Midas Core))
@@ -30,6 +32,8 @@ flowchart TB
 ```
 
 ## Documentation map
+
+Use these linked guides to move from the high-level design into contracts, testing, and project lessons.
 
 ```mermaid
 flowchart LR
@@ -47,6 +51,8 @@ flowchart LR
 | [What I learned](docs/what-i-learned.md) | New concepts and production lessons |
 
 ## One transaction
+
+This example follows one valid transfer from Kafka ingestion to the final balance response.
 
 ```mermaid
 sequenceDiagram
@@ -75,6 +81,8 @@ Aman:   500 + 256 + 8 = 764
 
 ## Stack
 
+Spring Boot connects the project's messaging, persistence, web, integration, and testing technologies.
+
 ```mermaid
 flowchart LR
     J[Java 17] --> S[Spring Boot 3.2.5]
@@ -91,6 +99,8 @@ flowchart LR
 
 <details>
 <summary><strong>View complete system design</strong></summary>
+
+This view shows every major runtime component, data path, external boundary, and test connection.
 
 ```mermaid
 flowchart TB
