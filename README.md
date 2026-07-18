@@ -2,72 +2,92 @@
 
 # Midas Core
 
-> A transaction-processing microservice from the JPMorgan Chase & Co. Advanced Software Engineering job simulation on Forage.
-
-Think of Midas Core as a digital bank-transfer system: a transaction arrives through Kafka, the service validates it, requests an incentive, updates the sender and recipient records, and makes the resulting balance available through an HTTP endpoint.
+> A Kafka-driven bank-transfer microservice from the JPMorgan Chase & Co. Advanced Software Engineering job simulation on Forage.
 
 ```mermaid
 flowchart LR
     P[Transaction producer] --> K[Kafka topic]
     K --> M[Midas Core]
-    M <--> I[Incentive API]
-    M <--> D[(H2 database)]
-    C[API client] -->|GET /balance| M
+    M --> V{Valid transaction?}
+    V -- No --> X[Reject]
+    V -- Yes --> I[Request incentive]
+    I --> D[(Update H2 balances)]
+    C[Balance client] -->|GET balance| M
+    M -->|JSON amount| C
 ```
 
-## Core capabilities
-
-| Area | Responsibility |
-|---|---|
-| Kafka | Consume and deserialize transaction messages from a configurable topic |
-| Validation | Verify both users, a positive amount, and sufficient sender funds |
-| Persistence | Model and update relational `UserRecord` data with Spring Data JPA and H2 |
-| Integration | Call the external Incentive API with `RestTemplate` |
-| REST | Return a user's balance as JSON through `GET /balance` |
-| Verification | Exercise the workflow with Maven, JUnit, embedded Kafka, and debugger inspection |
-
-## Documentation
-
-| Guide | Contents |
-|---|---|
-| [Architecture and transaction flow](docs/architecture.md) | Components, boundaries, validation path, domain model, worked example, and complete system design |
-| [Message and API contracts](docs/api-contracts.md) | Kafka payload, Incentive API, balance endpoint, ports, and verified field names |
-| [Testing and local runbook](docs/testing-and-runbook.md) | Task suites, fixtures, embedded Kafka, commands, and repository structure |
-| [What I learned](docs/what-i-learned.md) | New concepts and practical engineering lessons from the project |
-
-## Technology stack
-
-`Java 17` · `Spring Boot 3.2.5` · `Apache Kafka` · `Spring Data JPA` · `H2` · `Spring MVC` · `RestTemplate` · `Maven` · `JUnit 5`
-
-## Transaction at a glance
+## What the system covers
 
 ```mermaid
-flowchart TD
-    A[Receive transaction] --> B[Deserialize JSON]
-    B --> C[Load sender and recipient]
-    C --> D{Valid?}
-    D -- No --> X[Reject without balance changes]
-    D -- Yes --> E[Request incentive]
-    E --> F[Debit sender]
-    F --> G[Credit recipient + incentive]
-    G --> H[(Save both users)]
+flowchart TB
+    M((Midas Core))
+    M --> K[Kafka<br/>Consume and deserialize]
+    M --> V[Validation<br/>Users, amount, funds]
+    M --> J[JPA and H2<br/>Load and save users]
+    M --> R[REST integration<br/>Request incentive]
+    M --> B[Balance API<br/>Return JSON]
+    M --> T[Verification<br/>Maven, JUnit, debugger]
 ```
 
-### Example result
+## Documentation map
 
-| Stage | Rahul — ID 1 | Aman — ID 2 |
-|---|---:|---:|
-| Initial balance | ₹1,000 | ₹500 |
-| Transfer | −₹256 | +₹256 |
-| Incentive | — | +₹8 |
-| Final balance | **₹744** | **₹764** |
+```mermaid
+flowchart LR
+    R[README] --> A[Architecture<br/>Flows and boundaries]
+    R --> C[Contracts<br/>Kafka and REST]
+    R --> T[Testing<br/>Tasks and runbook]
+    R --> L[Learning<br/>Skills and takeaways]
+```
 
-The amount `256` is used because the bundled service returns `log₂(amount)` for whole-number powers of two. See the [complete walkthrough](docs/architecture.md#complete-application-example).
+| Open | Focus |
+|---|---|
+| [Architecture](docs/architecture.md) | Processing, validation, domain model, example |
+| [API contracts](docs/api-contracts.md) | Payloads, endpoints, response fields, ports |
+| [Testing](docs/testing-and-runbook.md) | Embedded Kafka, task suites, commands |
+| [What I learned](docs/what-i-learned.md) | New concepts and production lessons |
 
-## Repository snapshot
+## One transaction
+
+```mermaid
+sequenceDiagram
+    participant K as Kafka
+    participant M as Midas Core
+    participant I as Incentive API
+    participant D as H2
+    participant C as Client
+
+    Note over D: Rahul 1000<br/>Aman 500
+    K->>M: senderId 1, recipientId 2, amount 256
+    M->>M: Validate users, amount, and funds
+    M->>I: POST incentive
+    I-->>M: amount 8
+    M->>D: Rahul 744, Aman 764
+    C->>M: GET balance for user 2
+    M-->>C: amount 764
+```
+
+```text
+Rahul: 1000 - 256     = 744
+Aman:   500 + 256 + 8 = 764
+```
+
+`256` is used because the bundled API awards `log₂(amount)` for whole-number powers of two. [See the verified example →](docs/architecture.md#complete-application-example)
+
+## Stack
+
+```mermaid
+flowchart LR
+    J[Java 17] --> S[Spring Boot 3.2.5]
+    S --> K[Kafka]
+    S --> P[Spring Data JPA]
+    P --> H[H2]
+    S --> W[Spring MVC]
+    S --> RT[RestTemplate]
+    S --> M[Maven and JUnit 5]
+```
 
 > [!IMPORTANT]
-> The current `flow` branch is the supplied task scaffold. It contains the application entry point, models, JPA repository and conduit, test fixtures and helpers, and the bundled Incentive API. The Kafka consumer, balance controller, incentive client, Maven dependencies, and runtime configuration described by the task architecture are not checked into this branch. The documentation distinguishes this intended completed flow from the code currently present.
+> The current `flow` branch is the task scaffold. It contains the models, repository, database conduit, tests, fixtures, and Incentive API JAR. The consumer, controller, incentive client, dependencies, and runtime configuration shown in the intended architecture are not checked into this branch.
 
 <details>
 <summary><strong>View complete system design</strong></summary>
@@ -75,19 +95,19 @@ The amount `256` is used because the bundled service returns `log₂(amount)` fo
 ```mermaid
 flowchart TB
     subgraph Input[Transaction ingestion]
-        TP[Test KafkaProducer or upstream producer]
-        KT[(Configurable Kafka topic<br/>Embedded broker in tests on port 9092)]
-        TP -->|Serialized Transaction| KT
+        TP[Test producer or upstream producer]
+        KT[(Configurable Kafka topic<br/>Embedded broker on port 9092)]
+        TP -->|Transaction| KT
     end
 
-    subgraph Core[Midas Core Spring Boot service on port 33400]
-        KC[Kafka consumer<br/>Deserialization boundary]
-        VS[Transaction validation<br/>Workflow service]
-        IC[RestTemplate<br/>Incentive client]
+    subgraph Core[Midas Core on port 33400]
+        KC[Kafka consumer]
+        VS[Validation and workflow]
+        IC[RestTemplate client]
         DC[DatabaseConduit]
-        UR[UserRepository<br/>Spring Data JPA]
-        BC[Balance controller<br/>GET balance]
-        BM[Balance response model]
+        UR[UserRepository]
+        BC[Balance controller]
+        BM[Balance model]
 
         KC --> VS
         VS --> IC
@@ -98,28 +118,28 @@ flowchart TB
     end
 
     subgraph Data[Persistence]
-        H2[(H2 SQL database<br/>USER_RECORD table)]
+        H2[(H2 USER_RECORD)]
     end
 
-    subgraph External[External integration]
-        IA[Transaction Incentive API on port 33433<br/>POST incentive]
+    subgraph External[External service]
+        IA[Incentive API on port 33433]
     end
 
     subgraph Query[Balance query]
-        Client[HTTP client or BalanceQuerier]
+        Client[HTTP client]
     end
 
-    KT -->|Transaction event| KC
-    IC -->|Transaction JSON| IA
+    KT --> KC
+    IC -->|POST incentive| IA
     IA -->|Incentive amount| IC
-    UR -->|Find and save UserRecord| H2
+    UR -->|Find and save| H2
     H2 -->|User data| UR
-    Client -->|userId| BC
+    Client -->|GET balance with userId| BC
     BM -->|JSON amount| Client
 
-    subgraph Verification[Test and verification]
-        MVN[Maven and JUnit task suites]
-        DBG[Debugger checkpoints]
+    subgraph Verification[Verification]
+        MVN[Maven and JUnit]
+        DBG[Debugger]
         MVN -.-> KC
         MVN -.-> KT
         DBG -.-> VS

@@ -1,55 +1,53 @@
 # Message and API contracts
 
-[← Back to README](../README.md) · [Architecture](architecture.md) · [Testing](testing-and-runbook.md) · [What I learned](what-i-learned.md)
+[← README](../README.md) · [Architecture](architecture.md) · [Testing](testing-and-runbook.md) · [Learning](what-i-learned.md)
 
-## Contract map
+## Contract flow
+
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant K as Kafka
+    participant M as Midas Core
+    participant I as Incentive API
+    participant C as Balance client
+
+    P->>K: Transaction JSON
+    K->>M: Transaction object
+    M->>I: POST incentive
+    I-->>M: amount
+    C->>M: GET balance with userId
+    M-->>C: amount
+```
+
+## Kafka message
+
+```json
+{
+  "senderId": 1,
+  "recipientId": 2,
+  "amount": 256
+}
+```
+
+```mermaid
+classDiagram
+    class Transaction {
+        long senderId
+        long recipientId
+        float amount
+    }
+```
+
+> The model uses `recipientId`, not `receiverId`.
+
+## Incentive endpoint
 
 ```mermaid
 flowchart LR
-    P[Producer] -->|Transaction JSON| K[Kafka topic]
-    K -->|Transaction object| M[Midas Core]
-    M -->|POST transaction| I[Incentive API]
-    I -->|Incentive amount| M
-    C[Client] -->|GET userId| M
-    M -->|Balance JSON| C
+    M[Midas Core] -->|POST localhost 33433 incentive| I[Incentive API]
+    I -->|JSON amount| M
 ```
-
-## Kafka transaction
-
-```json
-{
-  "senderId": 1,
-  "recipientId": 2,
-  "amount": 256
-}
-```
-
-| Field | Java type | Meaning |
-|---|---:|---|
-| `senderId` | `long` | User sending funds |
-| `recipientId` | `long` | User receiving funds |
-| `amount` | `float` | Transfer amount |
-
-> The checked-in `Transaction` class uses `recipientId`, not `receiverId`.
-
-## Incentive API
-
-```http
-POST http://localhost:33433/incentive
-Content-Type: application/json
-```
-
-Request:
-
-```json
-{
-  "senderId": 1,
-  "recipientId": 2,
-  "amount": 256
-}
-```
-
-Response:
 
 ```json
 {
@@ -57,30 +55,33 @@ Response:
 }
 ```
 
-The bundled JAR exposes `POST /incentive`. Its response property is `amount`, not `incentive`.
-
-### Incentive rule
-
 ```mermaid
 flowchart LR
-    A[Transaction amount] --> B{Whole-number<br/>power of two?}
-    B -- Yes --> C[Incentive = log₂ amount]
-    B -- No --> D[Incentive = 0]
+    A[Amount] --> B{Whole-number<br/>power of two?}
+    B -- Yes --> C[Incentive equals log2 amount]
+    B -- No --> D[Incentive equals 0]
 ```
 
-| Transfer amount | Incentive |
+| Amount | Incentive |
 |---:|---:|
 | `128` | `7` |
 | `200` | `0` |
 | `256` | `8` |
 
-## Balance API
+> The response field is `amount`, not `incentive`.
 
-```http
-GET http://localhost:33400/balance?userId=2
+## Balance endpoint
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant B as Balance controller
+    participant R as UserRepository
+    C->>B: GET balance with userId 2
+    B->>R: Find user 2
+    R-->>B: Balance 764
+    B-->>C: JSON amount 764
 ```
-
-Response model:
 
 ```json
 {
@@ -88,12 +89,12 @@ Response model:
 }
 ```
 
-The checked-in `Balance` model contains only `amount`; it does not contain a `userId` or `balance` property.
+> `Balance` contains only `amount`.
 
-## Local ports
+## Ports
 
-| Port | Service |
-|---:|---|
-| `9092` | Embedded Kafka broker used by Tasks 2–5 |
-| `33400` | Midas Core server expected by `BalanceQuerier` |
-| `33433` | Bundled Incentive API |
+```mermaid
+flowchart LR
+    K[9092<br/>Embedded Kafka] --> M[33400<br/>Midas Core]
+    M --> I[33433<br/>Incentive API]
+```
