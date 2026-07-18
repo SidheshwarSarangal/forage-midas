@@ -50,7 +50,7 @@ sequenceDiagram
         M->>R: Save sender and recipient
         R->>H: UPDATE user records
     else invalid
-        M-->>M: Reject; do not change balances
+        M->>M: Reject transaction without balance changes
     end
 ```
 

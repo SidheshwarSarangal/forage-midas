@@ -68,3 +68,62 @@ The amount `256` is used because the bundled service returns `log₂(amount)` fo
 
 > [!IMPORTANT]
 > The current `flow` branch is the supplied task scaffold. It contains the application entry point, models, JPA repository and conduit, test fixtures and helpers, and the bundled Incentive API. The Kafka consumer, balance controller, incentive client, Maven dependencies, and runtime configuration described by the task architecture are not checked into this branch. The documentation distinguishes this intended completed flow from the code currently present.
+
+<details>
+<summary><strong>View complete system design</strong></summary>
+
+```mermaid
+flowchart TB
+    subgraph Input[Transaction ingestion]
+        TP[Test KafkaProducer or upstream producer]
+        KT[(Configurable Kafka topic<br/>Embedded broker in tests on port 9092)]
+        TP -->|Serialized Transaction| KT
+    end
+
+    subgraph Core[Midas Core Spring Boot service on port 33400]
+        KC[Kafka consumer<br/>Deserialization boundary]
+        VS[Transaction validation<br/>Workflow service]
+        IC[RestTemplate<br/>Incentive client]
+        DC[DatabaseConduit]
+        UR[UserRepository<br/>Spring Data JPA]
+        BC[Balance controller<br/>GET balance]
+        BM[Balance response model]
+
+        KC --> VS
+        VS --> IC
+        VS --> DC
+        DC --> UR
+        BC --> UR
+        BC --> BM
+    end
+
+    subgraph Data[Persistence]
+        H2[(H2 SQL database<br/>USER_RECORD table)]
+    end
+
+    subgraph External[External integration]
+        IA[Transaction Incentive API on port 33433<br/>POST incentive]
+    end
+
+    subgraph Query[Balance query]
+        Client[HTTP client or BalanceQuerier]
+    end
+
+    KT -->|Transaction event| KC
+    IC -->|Transaction JSON| IA
+    IA -->|Incentive amount| IC
+    UR -->|Find and save UserRecord| H2
+    H2 -->|User data| UR
+    Client -->|userId| BC
+    BM -->|JSON amount| Client
+
+    subgraph Verification[Test and verification]
+        MVN[Maven and JUnit task suites]
+        DBG[Debugger checkpoints]
+        MVN -.-> KC
+        MVN -.-> KT
+        DBG -.-> VS
+    end
+```
+
+</details>
